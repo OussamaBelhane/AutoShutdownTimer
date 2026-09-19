@@ -24,18 +24,26 @@ class ShutdownTimer:
     def __init__(self, root):
         self.root = root
         self.root.title("Auto Shutdown Timer")
-        self.root.geometry("460x730")
+        self.root.geometry("480x720")
         self.root.resizable(False, False)
         
-        self.bg = "#121418"
-        self.card = "#1c2128"
-        self.border = "#2d333b"
-        self.accent = "#58a6ff"
+        self.bg = "#0B0F17"
+        self.card = "#131B26"
+        self.card_highlight = "#182232"
+        self.border = "#1E2C3F"
+        self.border_focus = "#388BFD"
+        self.accent = "#388BFD"
+        self.accent_glow = "#58A6FF"
         self.btn_green = "#238636"
-        self.btn_red = "#da3633"
-        self.fg = "#f0f6fc"
-        self.fg_dim = "#8b949e"
-        self.input_bg = "#22272e"
+        self.btn_green_hover = "#2EA043"
+        self.btn_red = "#DA3633"
+        self.btn_red_hover = "#F85149"
+        self.fg = "#F0F6FC"
+        self.fg_dim = "#7D8590"
+        self.fg_sub = "#A0AEC0"
+        self.input_bg = "#0D131C"
+        self.chip_bg = "#1A2433"
+        self.chip_hover = "#253347"
         
         self.root.configure(bg=self.bg)
         
@@ -73,95 +81,125 @@ class ShutdownTimer:
         self.setup_ui()
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
 
+    def make_card(self, parent, pady=(0, 10)):
+        outer = tk.Frame(parent, bg=self.border, padx=1, pady=1)
+        outer.pack(fill="x", padx=16, pady=pady)
+        inner = tk.Frame(outer, bg=self.card, padx=14, pady=12)
+        inner.pack(fill="both", expand=True)
+        return inner
+
     def setup_ui(self):
-        top = tk.Frame(self.root, bg=self.bg)
-        top.pack(fill="x", padx=20, pady=(14, 6))
+        header = tk.Frame(self.root, bg=self.bg)
+        header.pack(fill="x", padx=16, pady=(16, 10))
 
-        lbl_title = tk.Label(top, text="⚡ Auto Shutdown Timer", font=("Segoe UI", 15, "bold"), fg=self.fg, bg=self.bg)
-        lbl_title.pack(anchor="w")
-        lbl_sub = tk.Label(top, text="Simple, lightweight power scheduler & download calculator", font=("Segoe UI", 8), fg=self.fg_dim, bg=self.bg)
-        lbl_sub.pack(anchor="w", pady=(1, 0))
+        title_row = tk.Frame(header, bg=self.bg)
+        title_row.pack(anchor="w")
 
-        display_box = tk.Frame(self.root, bg=self.card, highlightbackground=self.border, highlightthickness=1)
-        display_box.pack(fill="x", padx=20, pady=6)
+        tk.Label(title_row, text="⚡", font=("Segoe UI Emoji", 14), fg=self.accent_glow, bg=self.bg).pack(side="left", padx=(0, 6))
+        tk.Label(title_row, text="Auto Shutdown", font=("Segoe UI", 15, "bold"), fg=self.fg, bg=self.bg).pack(side="left")
 
-        badge = tk.Frame(display_box, bg=self.card)
-        badge.pack(fill="x", padx=14, pady=(10, 0))
+        tk.Label(header, text="High-precision system power scheduler & download manager", font=("Segoe UI", 8), fg=self.fg_dim, bg=self.bg).pack(anchor="w", pady=(2, 0))
 
-        self.dot = tk.Label(badge, text="●", font=("Segoe UI", 9), fg="#3fb950", bg=self.card)
-        self.dot.pack(side="left")
-        self.status_txt = tk.Label(badge, text="READY", font=("Segoe UI", 9, "bold"), fg="#3fb950", bg=self.card)
-        self.status_txt.pack(side="left", padx=5)
+        c_display = self.make_card(self.root, pady=(0, 10))
 
-        self.clock_lbl = tk.Label(display_box, text="08:00:00", font=("Consolas", 32, "bold"), fg=self.fg, bg=self.card)
-        self.clock_lbl.pack(pady=(4, 2))
+        status_bar = tk.Frame(c_display, bg=self.card)
+        status_bar.pack(fill="x")
 
-        self.eta_txt = tk.Label(display_box, text="Target: None", font=("Segoe UI", 9), fg=self.fg_dim, bg=self.card)
-        self.eta_txt.pack(pady=(0, 10))
+        pill = tk.Frame(status_bar, bg="#11271D", padx=8, pady=3, highlightbackground="#238636", highlightthickness=1)
+        pill.pack(side="left")
+        self.dot = tk.Label(pill, text="●", font=("Segoe UI", 8), fg="#3FB950", bg="#11271D")
+        self.dot.pack(side="left", padx=(0, 4))
+        self.status_txt = tk.Label(pill, text="READY TO SCHEDULE", font=("Segoe UI", 8, "bold"), fg="#3FB950", bg="#11271D")
+        self.status_txt.pack(side="left")
 
-        calc_card = tk.Frame(self.root, bg=self.card, highlightbackground=self.border, highlightthickness=1)
-        calc_card.pack(fill="x", padx=20, pady=5)
+        self.clock_lbl = tk.Label(c_display, text="08:00:00", font=("Consolas", 36, "bold"), fg=self.fg, bg=self.card)
+        self.clock_lbl.pack(pady=(10, 2))
 
-        calc_head = tk.Frame(calc_card, bg=self.card)
-        calc_head.pack(fill="x", padx=14, pady=(8, 4))
-        tk.Label(calc_head, text="📥 DOWNLOAD CALCULATOR", font=("Segoe UI", 9, "bold"), fg=self.accent, bg=self.card).pack(side="left")
+        eta_pill = tk.Frame(c_display, bg="#0D131C", padx=10, pady=3)
+        eta_pill.pack(pady=(0, 2))
+        self.eta_txt = tk.Label(eta_pill, text="Target: None", font=("Segoe UI", 8), fg=self.fg_sub, bg="#0D131C")
+        self.eta_txt.pack()
 
-        calc_grid = tk.Frame(calc_card, bg=self.card)
-        calc_grid.pack(fill="x", padx=14, pady=(0, 6))
+        c_calc = self.make_card(self.root, pady=(0, 10))
 
-        def make_calc_input(parent, var, label):
-            box = tk.Frame(parent, bg=self.input_bg, highlightbackground=self.border, highlightthickness=1, padx=4, pady=3)
-            box.pack(side="left", expand=True, fill="x", padx=2)
-            e = tk.Entry(box, textvariable=var, font=("Consolas", 11, "bold"), fg=self.fg, bg=self.input_bg, justify="center", bd=0, width=5)
-            e.pack()
-            tk.Label(box, text=label, font=("Segoe UI", 7), fg=self.fg_dim, bg=self.input_bg).pack()
+        calc_head = tk.Frame(c_calc, bg=self.card)
+        calc_head.pack(fill="x", pady=(0, 8))
+        tk.Label(calc_head, text="📥  DOWNLOAD TIME CALCULATOR", font=("Segoe UI", 8, "bold"), fg=self.accent_glow, bg=self.card).pack(side="left")
+
+        calc_grid = tk.Frame(c_calc, bg=self.card)
+        calc_grid.pack(fill="x", pady=(0, 8))
+
+        def create_input_cell(parent, var, title, unit):
+            wrapper = tk.Frame(parent, bg=self.border, padx=1, pady=1)
+            wrapper.pack(side="left", expand=True, fill="x", padx=3)
+            cell = tk.Frame(wrapper, bg=self.input_bg, padx=6, pady=6)
+            cell.pack(fill="both", expand=True)
+
+            tk.Label(cell, text=title, font=("Segoe UI", 7, "bold"), fg=self.fg_dim, bg=self.input_bg).pack(anchor="w")
+            
+            row = tk.Frame(cell, bg=self.input_bg)
+            row.pack(fill="x", pady=(2, 0))
+            e = tk.Entry(row, textvariable=var, font=("Consolas", 12, "bold"), fg=self.fg, bg=self.input_bg, bd=0, insertbackground=self.fg, width=5)
+            e.pack(side="left", fill="x", expand=True)
+            tk.Label(row, text=unit, font=("Segoe UI", 8, "bold"), fg=self.accent, bg=self.input_bg).pack(side="right", padx=(2, 0))
+
             var.trace_add("write", lambda *_: self.calc_download_time())
-            return e
+            return e, wrapper
 
-        self.ent_size = make_calc_input(calc_grid, self.size_val, "SIZE (GB)")
-        self.ent_speed = make_calc_input(calc_grid, self.speed_val, "SPEED (MB/s)")
+        self.ent_size, self.wrap_size = create_input_cell(calc_grid, self.size_val, "FILE SIZE", "GB")
+        self.ent_speed, self.wrap_speed = create_input_cell(calc_grid, self.speed_val, "DOWNLOAD SPEED", "MB/s")
 
-        buf_box = tk.Frame(calc_grid, bg=self.input_bg, highlightbackground=self.border, highlightthickness=1, padx=4, pady=3)
-        buf_box.pack(side="left", expand=True, fill="x", padx=2)
+        buf_wrapper = tk.Frame(calc_grid, bg=self.border, padx=1, pady=1)
+        buf_wrapper.pack(side="left", expand=True, fill="x", padx=3)
+        buf_cell = tk.Frame(buf_wrapper, bg=self.input_bg, padx=6, pady=4)
+        buf_cell.pack(fill="both", expand=True)
+
+        tk.Label(buf_cell, text="SAFETY BUFFER", font=("Segoe UI", 7, "bold"), fg=self.fg_dim, bg=self.input_bg).pack(anchor="w")
         
-        self.buf_menu = tk.OptionMenu(buf_box, self.buffer_val, "+15 min", "+30 min", "+45 min", "+60 min", command=lambda *_: self.calc_download_time())
-        self.buf_menu.config(font=("Segoe UI", 8, "bold"), fg=self.accent, bg=self.input_bg, bd=0, highlightthickness=0, activebackground=self.input_bg, activeforeground=self.accent, indicatoron=0)
-        self.buf_menu["menu"].config(font=("Segoe UI", 8), bg=self.input_bg, fg=self.fg, activebackground=self.accent, activeforeground="#000000")
-        self.buf_menu.pack()
-        tk.Label(buf_box, text="SAFETY BUFFER", font=("Segoe UI", 7), fg=self.fg_dim, bg=self.input_bg).pack()
+        self.buf_menu = tk.OptionMenu(buf_cell, self.buffer_val, "+15 min", "+30 min", "+45 min", "+60 min", command=lambda *_: self.calc_download_time())
+        self.buf_menu.config(font=("Segoe UI", 9, "bold"), fg=self.accent_glow, bg=self.input_bg, bd=0, highlightthickness=0, activebackground=self.input_bg, activeforeground=self.accent_glow, indicatoron=0, cursor="hand2")
+        self.buf_menu["menu"].config(font=("Segoe UI", 9), bg=self.card, fg=self.fg, activebackground=self.accent, activeforeground="#FFFFFF", bd=1)
+        self.buf_menu.pack(fill="x", pady=(2, 0))
 
+        info_bar = tk.Frame(c_calc, bg="#0D131C", padx=8, pady=5)
+        info_bar.pack(fill="x")
         self.calc_info_lbl = tk.Label(
-            calc_card,
-            text="Real time: 06h 04m  |  Timer filled: 06h 34m (+30m buffer)",
+            info_bar,
+            text="Real time: 06h 04m  |  Auto-fills: 06h 34m (+30m buffer)",
             font=("Segoe UI", 8),
-            fg="#58a6ff",
-            bg=self.card
+            fg=self.accent_glow,
+            bg="#0D131C"
         )
-        self.calc_info_lbl.pack(pady=(0, 8))
+        self.calc_info_lbl.pack()
 
-        time_card = tk.Frame(self.root, bg=self.card, highlightbackground=self.border, highlightthickness=1)
-        time_card.pack(fill="x", padx=20, pady=5)
+        c_time = self.make_card(self.root, pady=(0, 10))
 
-        tk.Label(time_card, text="SHUTDOWN DURATION", font=("Segoe UI", 9, "bold"), fg=self.fg_dim, bg=self.card).pack(anchor="w", padx=14, pady=(8, 4))
+        time_head = tk.Frame(c_time, bg=self.card)
+        time_head.pack(fill="x", pady=(0, 8))
+        tk.Label(time_head, text="⏱  MANUAL DURATION & PRESETS", font=("Segoe UI", 8, "bold"), fg=self.fg_sub, bg=self.card).pack(side="left")
 
-        inputs_wrap = tk.Frame(time_card, bg=self.card)
-        inputs_wrap.pack(fill="x", padx=14, pady=(0, 6))
+        inputs_wrap = tk.Frame(c_time, bg=self.card)
+        inputs_wrap.pack(fill="x", pady=(0, 8))
 
-        def make_box(parent, var, label):
-            box = tk.Frame(parent, bg=self.input_bg, highlightbackground=self.border, highlightthickness=1, padx=4, pady=3)
-            box.pack(side="left", expand=True, fill="x", padx=3)
-            e = tk.Entry(box, textvariable=var, font=("Consolas", 13, "bold"), fg=self.accent, bg=self.input_bg, justify="center", bd=0, width=3)
+        def create_time_spinner(parent, var, label):
+            wrapper = tk.Frame(parent, bg=self.border, padx=1, pady=1)
+            wrapper.pack(side="left", expand=True, fill="x", padx=3)
+            cell = tk.Frame(wrapper, bg=self.input_bg, padx=4, pady=4)
+            cell.pack(fill="both", expand=True)
+
+            e = tk.Entry(cell, textvariable=var, font=("Consolas", 14, "bold"), fg=self.accent_glow, bg=self.input_bg, justify="center", bd=0, insertbackground=self.fg, width=3)
             e.pack()
-            tk.Label(box, text=label, font=("Segoe UI", 7), fg=self.fg_dim, bg=self.input_bg).pack()
+            tk.Label(cell, text=label, font=("Segoe UI", 7, "bold"), fg=self.fg_dim, bg=self.input_bg).pack()
+
             var.trace_add("write", lambda *_: self.on_time_input_change())
-            return e
+            return e, wrapper
 
-        self.ent_h = make_box(inputs_wrap, self.h_val, "HOURS")
-        self.ent_m = make_box(inputs_wrap, self.m_val, "MINS")
-        self.ent_s = make_box(inputs_wrap, self.s_val, "SECS")
+        self.ent_h, self.wrap_h = create_time_spinner(inputs_wrap, self.h_val, "HOURS")
+        self.ent_m, self.wrap_m = create_time_spinner(inputs_wrap, self.m_val, "MINS")
+        self.ent_s, self.wrap_s = create_time_spinner(inputs_wrap, self.s_val, "SECS")
 
-        chips_wrap = tk.Frame(time_card, bg=self.card)
-        chips_wrap.pack(fill="x", padx=14, pady=(0, 8))
+        chips_wrap = tk.Frame(c_time, bg=self.card)
+        chips_wrap.pack(fill="x")
 
         for text, h, m in [("30m", 0, 30), ("1h", 1, 0), ("2h", 2, 0), ("4h", 4, 0), ("8h", 8, 0), ("12h", 12, 0)]:
             btn = tk.Button(
@@ -169,32 +207,29 @@ class ShutdownTimer:
                 text=text,
                 font=("Segoe UI", 8, "bold"),
                 fg=self.fg,
-                bg="#252c35",
-                activebackground="#313a46",
+                bg=self.chip_bg,
+                activebackground=self.chip_hover,
                 activeforeground=self.fg,
                 relief="flat",
                 bd=0,
-                pady=3,
+                pady=4,
                 cursor="hand2",
                 command=lambda hrs=h, mins=m: self.apply_preset(hrs, mins)
             )
             btn.pack(side="left", padx=2, expand=True, fill="x")
 
-        cfg_card = tk.Frame(self.root, bg=self.card, highlightbackground=self.border, highlightthickness=1)
-        cfg_card.pack(fill="x", padx=20, pady=5)
+        c_opt = self.make_card(self.root, pady=(0, 12))
 
-        tk.Label(cfg_card, text="OPTIONS", font=("Segoe UI", 9, "bold"), fg=self.fg_dim, bg=self.card).pack(anchor="w", padx=14, pady=(6, 2))
-
-        modes_row = tk.Frame(cfg_card, bg=self.card)
-        modes_row.pack(fill="x", padx=14, pady=(0, 2))
+        opt_row = tk.Frame(c_opt, bg=self.card)
+        opt_row.pack(fill="x")
 
         for text, val in [("Shutdown", "shutdown"), ("Restart", "restart"), ("Sleep", "sleep")]:
             rb = tk.Radiobutton(
-                modes_row,
+                opt_row,
                 text=text,
                 value=val,
                 variable=self.mode_val,
-                font=("Segoe UI", 8),
+                font=("Segoe UI", 8, "bold"),
                 fg=self.fg,
                 bg=self.card,
                 activebackground=self.card,
@@ -203,55 +238,55 @@ class ShutdownTimer:
                 cursor="hand2",
                 command=self.update_display
             )
-            rb.pack(side="left", padx=(0, 10))
+            rb.pack(side="left", padx=(0, 14))
 
         force_box = tk.Checkbutton(
-            cfg_card,
-            text="Force close running apps without prompting",
+            c_opt,
+            text="⚡ Force close running applications without hanging prompts",
             variable=self.force_val,
             font=("Segoe UI", 8),
-            fg="#f85149",
+            fg="#F85149",
             bg=self.card,
             activebackground=self.card,
-            activeforeground="#f85149",
+            activeforeground="#F85149",
             selectcolor=self.input_bg,
             cursor="hand2"
         )
-        force_box.pack(anchor="w", padx=14, pady=(0, 6))
+        force_box.pack(anchor="w", pady=(6, 0))
 
         ctrl_frame = tk.Frame(self.root, bg=self.bg)
-        ctrl_frame.pack(fill="x", padx=20, pady=(8, 8))
+        ctrl_frame.pack(fill="x", padx=16, pady=(0, 14))
 
         self.btn_start = tk.Button(
             ctrl_frame,
-            text="START TIMER",
+            text="▶   START TIMER & SCHEDULE",
             font=("Segoe UI", 10, "bold"),
-            fg="#ffffff",
+            fg="#FFFFFF",
             bg=self.btn_green,
-            activebackground="#2ea043",
-            activeforeground="#ffffff",
+            activebackground=self.btn_green_hover,
+            activeforeground="#FFFFFF",
             relief="flat",
             bd=0,
-            pady=8,
+            pady=10,
             cursor="hand2",
             command=self.start
         )
-        self.btn_start.pack(fill="x", pady=(0, 4))
+        self.btn_start.pack(fill="x", pady=(0, 6))
 
         row2 = tk.Frame(ctrl_frame, bg=self.bg)
         row2.pack(fill="x")
 
         self.btn_cancel = tk.Button(
             row2,
-            text="Cancel / Stop",
-            font=("Segoe UI", 9),
-            fg=self.fg,
+            text="✕  Cancel / Stop",
+            font=("Segoe UI", 9, "bold"),
+            fg=self.fg_dim,
             bg=self.card,
             activebackground=self.btn_red,
-            activeforeground="#ffffff",
+            activeforeground="#FFFFFF",
             relief="flat",
             bd=0,
-            pady=5,
+            pady=7,
             state="disabled",
             cursor="hand2",
             command=self.cancel
@@ -260,15 +295,15 @@ class ShutdownTimer:
 
         self.btn_tray = tk.Button(
             row2,
-            text="Minimize to Tray",
+            text="🗕  Minimize to Tray",
             font=("Segoe UI", 9),
-            fg=self.fg_dim,
+            fg=self.fg_sub,
             bg=self.card,
-            activebackground=self.input_bg,
+            activebackground=self.chip_hover,
             activeforeground=self.fg,
             relief="flat",
             bd=0,
-            pady=5,
+            pady=7,
             cursor="hand2",
             command=self.to_tray
         )
@@ -372,15 +407,15 @@ class ShutdownTimer:
         self.running = True
         self.stop_flag.clear()
 
-        self.btn_start.config(state="disabled", bg="#1b4728", text="RUNNING...")
-        self.btn_cancel.config(state="normal", bg=self.btn_red, fg="#ffffff")
+        self.btn_start.config(state="disabled", bg="#153621", text="⏳   COUNTDOWN IN PROGRESS...")
+        self.btn_cancel.config(state="normal", bg=self.btn_red, fg="#FFFFFF")
         for ent in [self.ent_h, self.ent_m, self.ent_s, self.ent_size, self.ent_speed]:
             ent.config(state="disabled")
         self.buf_menu.config(state="disabled")
 
-        self.dot.config(fg=self.accent)
-        self.status_txt.config(text="COUNTING DOWN", fg=self.accent)
-        self.clock_lbl.config(fg=self.accent)
+        self.dot.config(fg=self.accent_glow)
+        self.status_txt.config(text="ACTIVE COUNTDOWN", fg=self.accent_glow)
+        self.clock_lbl.config(fg=self.accent_glow)
 
         self.worker = threading.Thread(target=self.tick_loop, daemon=True)
         self.worker.start()
@@ -450,14 +485,14 @@ class ShutdownTimer:
 
     def reset_state(self):
         self.running = False
-        self.btn_start.config(state="normal", bg=self.btn_green, text="START TIMER")
-        self.btn_cancel.config(state="disabled", bg=self.card, fg=self.fg)
+        self.btn_start.config(state="normal", bg=self.btn_green, text="▶   START TIMER & SCHEDULE")
+        self.btn_cancel.config(state="disabled", bg=self.card, fg=self.fg_dim)
         for ent in [self.ent_h, self.ent_m, self.ent_s, self.ent_size, self.ent_speed]:
             ent.config(state="normal")
         self.buf_menu.config(state="normal")
             
-        self.dot.config(fg="#3fb950")
-        self.status_txt.config(text="READY", fg="#3fb950")
+        self.dot.config(fg="#3FB950")
+        self.status_txt.config(text="READY TO SCHEDULE", fg="#3FB950")
         self.clock_lbl.config(fg=self.fg)
         self.update_display()
 
