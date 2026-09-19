@@ -54,6 +54,9 @@ class ShutdownTimer:
         self.worker = None
         self.stop_flag = threading.Event()
         
+        self.updating_from_calc = False
+        self.updating_from_inputs = False
+        
         self.h_val = tk.StringVar(value="8")
         self.m_val = tk.StringVar(value="0")
         self.s_val = tk.StringVar(value="0")
@@ -62,7 +65,7 @@ class ShutdownTimer:
         
         self.size_val = tk.StringVar(value="42.8")
         self.speed_val = tk.StringVar(value="2.0")
-        self.buffer_val = tk.StringVar(value="30")
+        self.buffer_val = tk.StringVar(value="+30 min")
         
         self.tray = None
         self.minimized = False
@@ -121,16 +124,15 @@ class ShutdownTimer:
         buf_box = tk.Frame(calc_grid, bg=self.input_bg, highlightbackground=self.border, highlightthickness=1, padx=4, pady=3)
         buf_box.pack(side="left", expand=True, fill="x", padx=2)
         
-        buf_menu = tk.OptionMenu(buf_box, self.buffer_val, "+15 min", "+30 min", "+45 min", "+60 min", command=lambda *_: self.calc_download_time())
-        buf_menu.config(font=("Segoe UI", 8, "bold"), fg=self.accent, bg=self.input_bg, bd=0, highlightthickness=0, activebackground=self.input_bg, activeforeground=self.accent, indicatoron=0)
-        buf_menu["menu"].config(font=("Segoe UI", 8), bg=self.input_bg, fg=self.fg, activebackground=self.accent, activeforeground="#000000")
-        buf_menu.pack()
-        self.buffer_val.set("+30 min")
+        self.buf_menu = tk.OptionMenu(buf_box, self.buffer_val, "+15 min", "+30 min", "+45 min", "+60 min", command=lambda *_: self.calc_download_time())
+        self.buf_menu.config(font=("Segoe UI", 8, "bold"), fg=self.accent, bg=self.input_bg, bd=0, highlightthickness=0, activebackground=self.input_bg, activeforeground=self.accent, indicatoron=0)
+        self.buf_menu["menu"].config(font=("Segoe UI", 8), bg=self.input_bg, fg=self.fg, activebackground=self.accent, activeforeground="#000000")
+        self.buf_menu.pack()
         tk.Label(buf_box, text="SAFETY BUFFER", font=("Segoe UI", 7), fg=self.fg_dim, bg=self.input_bg).pack()
 
         self.calc_info_lbl = tk.Label(
             calc_card,
-            text="Real time: 06h 04m  |  Auto-fills: 06h 34m (+30m buffer)",
+            text="Real time: 06h 04m  |  Timer filled: 06h 34m (+30m buffer)",
             font=("Segoe UI", 8),
             fg="#58a6ff",
             bg=self.card
@@ -151,7 +153,7 @@ class ShutdownTimer:
             e = tk.Entry(box, textvariable=var, font=("Consolas", 13, "bold"), fg=self.accent, bg=self.input_bg, justify="center", bd=0, width=3)
             e.pack()
             tk.Label(box, text=label, font=("Segoe UI", 7), fg=self.fg_dim, bg=self.input_bg).pack()
-            var.trace_add("write", lambda *_: self.update_display())
+            var.trace_add("write", lambda *_: self.on_time_input_change())
             return e
 
         self.ent_h = make_box(inputs_wrap, self.h_val, "HOURS")
@@ -198,7 +200,8 @@ class ShutdownTimer:
                 activebackground=self.card,
                 activeforeground=self.accent,
                 selectcolor=self.input_bg,
-                cursor="hand2"
+                cursor="hand2",
+                command=self.update_display
             )
             rb.pack(side="left", padx=(0, 10))
 
@@ -274,9 +277,18 @@ class ShutdownTimer:
         self.calc_download_time()
 
     def calc_download_time(self):
+        if self.running or self.updating_from_inputs:
+            return
+        
         try:
-            size_gb = float(self.size_val.get().replace(",", "."))
-            speed_mb = float(self.speed_val.get().replace(",", "."))
+            s_raw = self.size_val.get().strip().replace(",", ".")
+            sp_raw = self.speed_val.get().strip().replace(",", ".")
+            if not s_raw or not sp_raw:
+                self.calc_info_lbl.config(text="Enter size (GB) and download speed (MB/s)")
+                return
+
+            size_gb = float(s_raw)
+            speed_mb = float(sp_raw)
             if size_gb <= 0 or speed_mb <= 0:
                 self.calc_info_lbl.config(text="Enter positive values for size and speed")
                 return
@@ -300,19 +312,27 @@ class ShutdownTimer:
                 text=f"Real time: {rh:02d}h {rm:02d}m {rs:02d}s  |  Timer filled: {th:02d}h {tm:02d}m (+{buf_mins}m buffer)"
             )
 
-            if not self.running:
-                self.h_val.set(str(th))
-                self.m_val.set(str(tm))
-                self.s_val.set(str(ts))
-                self.update_display()
+            self.updating_from_calc = True
+            self.h_val.set(str(th))
+            self.m_val.set(str(tm))
+            self.s_val.set(str(ts))
+            self.updating_from_calc = False
+            
+            self.update_display()
         except ValueError:
             self.calc_info_lbl.config(text="Enter valid numbers (e.g. 42.8 GB and 2.7 MB/s)")
 
+    def on_time_input_change(self):
+        if not self.running and not self.updating_from_calc:
+            self.updating_from_inputs = True
+            self.update_display()
+            self.updating_from_inputs = False
+
     def parse_seconds(self):
         try:
-            h = int(self.h_val.get() or 0)
-            m = int(self.m_val.get() or 0)
-            s = int(self.s_val.get() or 0)
+            h = int(self.h_val.get().strip() or 0)
+            m = int(self.m_val.get().strip() or 0)
+            s = int(self.s_val.get().strip() or 0)
             return max(0, h * 3600 + m * 60 + s)
         except ValueError:
             return 0
@@ -320,9 +340,11 @@ class ShutdownTimer:
     def apply_preset(self, h, m):
         if self.running:
             return
+        self.updating_from_calc = True
         self.h_val.set(str(h))
         self.m_val.set(str(m))
         self.s_val.set("0")
+        self.updating_from_calc = False
         self.update_display()
 
     def update_display(self):
@@ -354,6 +376,7 @@ class ShutdownTimer:
         self.btn_cancel.config(state="normal", bg=self.btn_red, fg="#ffffff")
         for ent in [self.ent_h, self.ent_m, self.ent_s, self.ent_size, self.ent_speed]:
             ent.config(state="disabled")
+        self.buf_menu.config(state="disabled")
 
         self.dot.config(fg=self.accent)
         self.status_txt.config(text="COUNTING DOWN", fg=self.accent)
@@ -431,6 +454,7 @@ class ShutdownTimer:
         self.btn_cancel.config(state="disabled", bg=self.card, fg=self.fg)
         for ent in [self.ent_h, self.ent_m, self.ent_s, self.ent_size, self.ent_speed]:
             ent.config(state="normal")
+        self.buf_menu.config(state="normal")
             
         self.dot.config(fg="#3fb950")
         self.status_txt.config(text="READY", fg="#3fb950")
